@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+deepstack-sdk = "*"
+opencv-python = "*"
+watchdog = "*"
+
+[dev-packages]
+black = "*"
+flake8 = "*"
+rope = "*"
+isort = "*"
+
+[requires]
+python_version = "3.8"
+
+[pipenv]
+allow_prereleases = true
