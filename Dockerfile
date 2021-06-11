@@ -13,8 +13,10 @@ RUN useradd --create-home ${USERNAME} \
 WORKDIR /app
 USER ${USERNAME}
 
-COPY main.py Pipfile Pipfile.lock ./
+COPY Pipfile Pipfile.lock ./
 
 RUN pipenv install --system --deploy --ignore-pipfile
 
-CMD [ "python", "./main.py" ]
+COPY entrypoint.py cctv_filter.py reolink_camera.py reolink_video.py ./
+
+CMD [ "python", "./entrypoint.py" ]
