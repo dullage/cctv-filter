@@ -23,13 +23,14 @@ if __name__ == "__main__":
             (2560, 1),
             (2560, 1920),
             (1, 1920),
-        ],
+        ]
     )
     side_camera = ReolinkCamera(
         "Side",
         roi=[(1, 500), (491, 483), (2560, 1037), (2560, 1920), (1, 1920)],
+        min_confidence=0.55
     )
-    garden_camera = ReolinkCamera("Garden")
+    garden_camera = ReolinkCamera("Garden", min_confidence=0.55)
 
     cctv_filter = CCTVFilter(
         [front_door_camera, side_camera, garden_camera],
