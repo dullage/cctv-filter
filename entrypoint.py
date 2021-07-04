@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -12,33 +13,38 @@ logging.basicConfig(
 )
 
 if __name__ == "__main__":
-    # TODO: Move to env vars
-    front_door_camera = ReolinkCamera(
-        "Front Door",
-        roi=[
-            (1, 1180),
-            (1235, 865),
-            (1199, 285),
-            (1515, 1),
-            (2560, 1),
-            (2560, 1920),
-            (1, 1920),
-        ]
-    )
-    side_camera = ReolinkCamera(
-        "Side",
-        roi=[(1, 500), (491, 483), (2560, 1037), (2560, 1920), (1, 1920)],
-        min_confidence=0.55
-    )
-    garden_camera = ReolinkCamera("Garden", min_confidence=0.55)
+    DEEPSTACK_URL = os.environ["DEEPSTACK_URL"]
+    INCOMING_DIR_PATH = os.environ["INCOMING_DIR_PATH"]
+    ACCEPTED_DIR_PATH = os.environ["ACCEPTED_DIR_PATH"]
+    LATEST_DETECTION_PATH = os.environ["LATEST_DETECTION_PATH"]
+    REJECTED_DIR_PATH = os.environ["REJECTED_DIR_PATH"]
+
+    cameras = []
+    camera_num = 1
+    while True:
+        try:
+            name = os.environ[f"CAMERA_{camera_num}"]
+        except KeyError:
+            break
+        min_confidence = float(
+            os.environ.get(f"CAMERA_{camera_num}_MIN_CONFIDENCE", 0.5)
+        )
+        roi_json = os.environ.get(f"CAMERA_{camera_num}_ROI", None)
+        if roi_json is not None:
+            roi = json.loads(roi_json)
+        else:
+            roi = None
+        cameras.append(ReolinkCamera(name, min_confidence, roi))
+
+        camera_num += 1
 
     cctv_filter = CCTVFilter(
-        [front_door_camera, side_camera, garden_camera],
-        os.environ["DEEPSTACK_URL"],
-        os.environ["INCOMING_DIR_PATH"],
-        os.environ["ACCEPTED_DIR_PATH"],
-        os.environ["LATEST_DETECTION_PATH"],
-        os.environ["REJECTED_DIR_PATH"],
+        cameras,
+        DEEPSTACK_URL,
+        INCOMING_DIR_PATH,
+        ACCEPTED_DIR_PATH,
+        LATEST_DETECTION_PATH,
+        REJECTED_DIR_PATH,
     )
 
     cctv_filter.run()
