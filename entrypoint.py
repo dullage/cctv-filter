@@ -18,6 +18,7 @@ if __name__ == "__main__":
     ACCEPTED_DIR_PATH = os.environ["ACCEPTED_DIR_PATH"]
     LATEST_DETECTION_PATH = os.environ["LATEST_DETECTION_PATH"]
     REJECTED_DIR_PATH = os.environ["REJECTED_DIR_PATH"]
+    DRAW_ROI = os.environ.get("DRAW_ROI", "False").lower() == "true"
 
     cameras = []
     camera_num = 1
@@ -45,6 +46,7 @@ if __name__ == "__main__":
         ACCEPTED_DIR_PATH,
         LATEST_DETECTION_PATH,
         REJECTED_DIR_PATH,
+        draw_roi=DRAW_ROI,
     )
 
     cctv_filter.run()

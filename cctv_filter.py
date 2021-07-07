@@ -50,6 +50,7 @@ class CCTVFilter(FileSystemEventHandler):
         accepted_path: str,
         latest_detections_path: str,
         rejected_path: str,
+        draw_roi: bool = False,
     ):
         self.cameras = cameras
         self.deepstack = Detection(ServerConfig(deepstack_url))
@@ -57,6 +58,7 @@ class CCTVFilter(FileSystemEventHandler):
         self.accepted_path = accepted_path
         self.latest_detections_path = latest_detections_path
         self.rejected_path = rejected_path
+        self.draw_roi = draw_roi
 
         self.queue = []
 
@@ -81,7 +83,11 @@ class CCTVFilter(FileSystemEventHandler):
     def _process_video(self, path, filename, extension):
         video = ReolinkVideo(path, filename, extension)
         camera = self._lookup_camera(video.camera_name)
-        video_is_accepted, accepted_frame = video.is_accepted(
+        (
+            video_is_accepted,
+            accepted_frame,
+            deepstack_response,
+        ) = video.is_accepted(
             self.deepstack, camera.min_confidence, camera.roi
         )
 
@@ -90,7 +96,7 @@ class CCTVFilter(FileSystemEventHandler):
             image_ext = "jpg"
             video.save_images_from_frame(
                 accepted_frame,
-                self.deepstack,
+                deepstack_response,
                 [
                     os.path.join(
                         self.accepted_path, video.friendly_filename(image_ext)
@@ -100,7 +106,8 @@ class CCTVFilter(FileSystemEventHandler):
                         f"{camera.name.lower().replace(' ', '_')}.{image_ext}",
                     ),
                 ],
-                camera.min_confidence,
+                self.draw_roi,
+                camera.roi,
             )
         else:
             video.move(self.rejected_path)

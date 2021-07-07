@@ -4,8 +4,9 @@ from datetime import datetime
 from typing import List
 
 import cv2
+import numpy as np
 from deepstack_sdk import Detection, viz
-from numpy import ndarray
+from deepstack_sdk.structs import DetectionResponse
 from shapely.geometry import Polygon, box
 
 
@@ -81,6 +82,10 @@ class ReolinkVideo:
         else:
             return self._detection_in_roi(detection, roi)
 
+    def _draw_roi(self, frame, roi):
+        roi_array = np.array(roi.exterior.coords, np.int32)
+        return cv2.polylines(frame, [roi_array], True, (255, 0, 0), 2)
+
     def is_accepted(
         self,
         deepstack: Detection,
@@ -88,7 +93,9 @@ class ReolinkVideo:
         roi: Polygon = None,
     ):
         logging.info(f"ANALYSING {self.filename_with_ext}")
-        video = cv2.VideoCapture(os.path.join(self.path, self.filename_with_ext))
+        video = cv2.VideoCapture(
+            os.path.join(self.path, self.filename_with_ext)
+        )
         current_frame = target_frame = 1
         read_ok, frame = video.read()
         if not read_ok:
@@ -102,17 +109,22 @@ class ReolinkVideo:
                 for detection in response.detections:
                     if self._is_accepted_detection(detection, roi):
                         logging.info(
-                            f"ACCEPTED {self.filename_with_ext} {detection.label} detected"
+                            ", ".join(
+                                [
+                                    f"ACCEPTED {self.filename_with_ext}",
+                                    f"{detection.label} detected ({100 * detection.confidence}%)",
+                                ]
+                            )
                         )
                         video.release()
-                        return True, frame
+                        return True, frame, response
                 target_frame += 15  # Skip 15 frames (roughly 0.5s)
             read_ok, frame = video.read()
             current_frame += 1
 
         logging.info(f"REJECTED {self.filename_with_ext}")
         video.release()
-        return False, None
+        return False, None, None
 
     def move(self, target_path: str):
         target_full_path = os.path.join(target_path, self.friendly_filename())
@@ -120,15 +132,14 @@ class ReolinkVideo:
 
     def save_images_from_frame(
         self,
-        frame: ndarray,
-        deepstack: Detection,
+        frame: np.ndarray,
+        deepstack_response: DetectionResponse,
         outputs: List[str],
-        min_confidence: float = 0.5,
+        draw_roi=False,
+        roi=None,
     ):
-        frame_bytes = self._frame_to_bytes(frame)
-        response = deepstack.detectObject(
-            frame_bytes,
-            min_confidence=min_confidence,
-        )
+        frame = viz.drawResponse(frame, deepstack_response)
+        if draw_roi is True and roi is not None:
+            frame = self._draw_roi(frame, roi)
         for output in outputs:
-            viz.saveResponse(frame_bytes, response, output)
+            cv2.imwrite(output, frame)
